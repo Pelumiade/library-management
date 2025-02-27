@@ -8,3 +8,16 @@ __pycache__/
 */*/*/__pycache__/
 *.cpython-*.pyc
 
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+virtualenv/
+
+# Specific paths
+*/venv/
+*/env/
+admin_api/venv/
+frontend_api/venv/
