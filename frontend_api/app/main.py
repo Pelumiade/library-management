@@ -9,7 +9,6 @@ app = FastAPI(
     title="Library Management - Frontend API",
     description="API for library users to browse and borrow books",
     version="1.0.0",
-    root_path="/",
 )
 
 # Set up CORS
