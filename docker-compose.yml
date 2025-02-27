@@ -1,13 +1,81 @@
+# services:
+#   admin_api:
+#     build:
+#       context: .  # Use the root directory as build context
+#       dockerfile: ./admin_api/Dockerfile  # Path to Dockerfile
+#     container_name: admin_api
+#     env_file:
+#       - ./admin_api/.env
+#     depends_on:
+#       - admin_db
+#       - rabbitmq
+#     ports:
+#       - "8000:8000"
+#     volumes:
+#       - ./admin_api:/app
+#     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+#   admin_db:
+#     image: postgres:15
+#     container_name: admin_db
+#     restart: always
+#     env_file:
+#       - ./admin_api/.env
+#     ports:
+#       - "5433:5432"
+#     volumes:
+#       - admin_db_data:/var/lib/postgresql/data
+
+#   frontend_api:
+#     build:
+#       context: .  # Use the root directory as build context
+#       dockerfile: ./frontend_api/Dockerfile  # Path to Dockerfile
+#     container_name: frontend_api
+#     env_file:
+#       - ./frontend_api/.env
+#     depends_on:
+#       - frontend_db
+#       - rabbitmq
+#     ports:
+#       - "8001:8000"
+#     volumes:
+#       - ./frontend_api:/app
+#     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+#   frontend_db:
+#     image: postgres:15
+#     container_name: frontend_db
+#     restart: always
+#     env_file:
+#       - ./frontend_api/.env
+#     ports:
+#       - "5434:5432"
+#     volumes:
+#       - frontend_db_data:/var/lib/postgresql/data
+
+#   rabbitmq:
+#     image: rabbitmq:3-management
+#     container_name: rabbitmq
+#     restart: always
+#     environment:
+#       RABBITMQ_DEFAULT_USER: guest
+#       RABBITMQ_DEFAULT_PASS: guest
+#     ports:
+#       - "5672:5672"
+#       - "15672:15672"
+
+# volumes:
+#   admin_db_data:
+#   frontend_db_data:
 services:
   admin_api:
     build:
-      context: .  # Use the root directory as build context
-      dockerfile: ./admin_api/Dockerfile  # Path to Dockerfile
+      context: .
+      dockerfile: ./admin_api/Dockerfile
     container_name: admin_api
     env_file:
       - ./admin_api/.env
     depends_on:
-      - admin_db
       - rabbitmq
     ports:
       - "8000:8000"
@@ -15,26 +83,14 @@ services:
       - ./admin_api:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  admin_db:
-    image: postgres:15
-    container_name: admin_db
-    restart: always
-    env_file:
-      - ./admin_api/.env
-    ports:
-      - "5433:5432"
-    volumes:
-      - admin_db_data:/var/lib/postgresql/data
-
   frontend_api:
     build:
-      context: .  # Use the root directory as build context
-      dockerfile: ./frontend_api/Dockerfile  # Path to Dockerfile
+      context: .
+      dockerfile: ./frontend_api/Dockerfile
     container_name: frontend_api
     env_file:
       - ./frontend_api/.env
     depends_on:
-      - frontend_db
       - rabbitmq
     ports:
       - "8001:8000"
@@ -42,24 +98,10 @@ services:
       - ./frontend_api:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  frontend_db:
-    image: postgres:15
-    container_name: frontend_db
-    restart: always
-    env_file:
-      - ./frontend_api/.env
-    ports:
-      - "5434:5432"
-    volumes:
-      - frontend_db_data:/var/lib/postgresql/data
-
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
     restart: always
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
     ports:
       - "5672:5672"
       - "15672:15672"
