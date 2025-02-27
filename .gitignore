@@ -21,3 +21,9 @@ virtualenv/
 */env/
 admin_api/venv/
 frontend_api/venv/
+
+# Environment variables
+.env
+*/.env
+admin_api/.env
+frontend_api/.env
