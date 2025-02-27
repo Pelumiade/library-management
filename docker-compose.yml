@@ -29,7 +29,13 @@ services:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
-      - RABBITMQ_PASS=guest
+      - RABBITMQ_PASSWORD=guest
+      - POSTGRES_SERVER=dpg-cuvihnij1k6c73ed8jc0-a
+      - POSTGRES_USER=frontend
+      - POSTGRES_PASSWORD=7rrbLCzFarSZrQ5ZHSLMOfLpfCrNTsj5f
+      - POSTGRES_DB=lbs_frontend_api
+      - POSTGRES_PORT=5432
+      - DATABASE_URL=postgresql://frontend:rrbLCzFarSZrQ5ZHSLMOfLpfCrNTsj5f@dpg-cuvihnij1k6c73ed8jc0-a.oregon-postgres.render.com/lbs_frontend_api
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -50,7 +56,13 @@ services:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
-      - RABBITMQ_PASS=guest
+      - RABBITMQ_PASSWORD=guest
+      - POSTGRES_SERVER=dpg-cuvatg1u0jms739hoe4g-a
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=7w65IRnPY3Pr6rEJlHUMKkCuXIEnjjZr
+      - POSTGRES_DB=lbs_backend_api
+      - POSTGRES_PORT=5432
+      - DATABASE_URL=postgresql://admin:7w65IRnPY3Pr6rEJlHUMKkCuXIEnjjZr@dpg-cuvatg1u0jms739hoe4g-a.oregon-postgres.render.com/lbs_backend_api
     depends_on:
       rabbitmq:
         condition: service_healthy

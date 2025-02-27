@@ -27,3 +27,4 @@ frontend_api/venv/
 */.env
 admin_api/.env
 frontend_api/.env
+*.pem
