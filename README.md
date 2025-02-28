@@ -127,10 +127,6 @@ The two API services communicate asynchronously through RabbitMQ messages:
 - **Users**: Mirror of users registered through Frontend API
 - **Lending**: Mirror of lending records from Frontend API
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## Acknowledgements
 
 - FastAPI: https://fastapi.tiangolo.com/
