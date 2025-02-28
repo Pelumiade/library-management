@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, Date, func
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Date
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from datetime import datetime, timedelta
 
 
