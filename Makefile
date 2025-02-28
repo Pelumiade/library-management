@@ -3,3 +3,6 @@ deploy:
 
 ssh:
 	ssh -i "server-key.pem" ubuntu@ec2-16-171-235-195.eu-north-1.compute.amazonaws.com
+
+coverage:
+	chmod +x coverage.sh && ./coverage.sh
