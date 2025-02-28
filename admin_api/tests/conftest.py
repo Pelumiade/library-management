@@ -1,17 +1,19 @@
-# admin_api/tests/conftest.py
 import sys
 import os
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from unittest.mock import patch, MagicMock
+from tests.test_settings import test_settings
+from app.models import Base
+from app.dependencies import get_db
+from fastapi.testclient import TestClient
 
 # Add the admin_api directory to Python path
 admin_api_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if admin_api_path not in sys.path:
     sys.path.insert(0, admin_api_path)
 
-# Import and create the test settings
-from tests.test_settings import test_settings
 
 # Set environment variables immediately before any imports
 os.environ["POSTGRES_SERVER"] = test_settings.POSTGRES_SERVER
@@ -26,16 +28,12 @@ os.environ["RABBITMQ_USER"] = test_settings.RABBITMQ_USER
 os.environ["RABBITMQ_PASSWORD"] = test_settings.RABBITMQ_PASSWORD
 os.environ["PROJECT_NAME"] = test_settings.PROJECT_NAME
 
-# Now we can safely import app modules
-from app.models import Base
 
 # Mock RabbitMQ consumer to avoid connecting to actual RabbitMQ during tests
 import unittest.mock as mock
 with mock.patch('app.consumer.start_consumer'):
     from app.main import app
     
-from app.dependencies import get_db
-from fastapi.testclient import TestClient
 
 # Test database URL
 TEST_DATABASE_URL = "sqlite:///./test.db"
@@ -58,6 +56,20 @@ def db_session(engine):
     finally:
         db.rollback()
         db.close()
+
+
+@pytest.fixture(autouse=True)
+def mock_rabbitmq():
+    """Mock all RabbitMQ-related functions."""
+    # Create a mock connection with a channel method
+    mock_connection = MagicMock()
+    mock_channel = MagicMock()
+    mock_connection.channel.return_value = mock_channel
+    
+    with patch('app.publisher.get_connection', return_value=mock_connection), \
+         patch('app.consumer.start_consumer', return_value=None):
+        yield
+
 
 @pytest.fixture(scope="module")
 def client(engine):

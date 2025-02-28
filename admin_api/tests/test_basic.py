@@ -1,4 +1,3 @@
-# admin_api/tests/test_basic.py
 def test_settings_are_patched():
     """Verify that the settings patch is working"""
     from app.config import settings
