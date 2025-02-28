@@ -36,7 +36,7 @@ with mock.patch('app.consumer.start_consumer'):
     from app.main import app
 
 # Test database URL for frontend API
-TEST_DATABASE_URL = "sqlite:///./test_frontend.db"
+TEST_DATABASE_URL = "sqlite:///./test.db"
 
 @pytest.fixture(scope="session")
 def engine():
