@@ -25,8 +25,7 @@ jobs:
     
     - name: Run tests and generate coverage
       run: |
-        pytest --cov=admin_api --cov=frontend_api --cov-report=xml
-        coverage-badge -o coverage_badge.svg
+        make coverage
     
     - name: Deploy coverage badge
       uses: peaceiris/actions-gh-pages@v3
