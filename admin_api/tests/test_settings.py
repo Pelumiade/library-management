@@ -1,4 +1,3 @@
-# admin_api/tests/test_settings.py
 from pydantic_settings import BaseSettings
 
 class TestEnvSettings(BaseSettings):
@@ -19,7 +18,7 @@ class TestEnvSettings(BaseSettings):
     RABBITMQ_PASSWORD: str = "guest"
     
     class Config:
-        env_file = None  # Don't use .env file for tests
+        env_file = None  #
         case_sensitive = True
 
 test_settings = TestEnvSettings()

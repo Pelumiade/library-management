@@ -1,6 +1,7 @@
 import sys
 import os
 import pytest
+import unittest.mock as mock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import patch, MagicMock
@@ -30,7 +31,6 @@ os.environ["PROJECT_NAME"] = test_settings.PROJECT_NAME
 
 
 # Mock RabbitMQ consumer to avoid connecting to actual RabbitMQ during tests
-import unittest.mock as mock
 with mock.patch('app.consumer.start_consumer'):
     from app.main import app
     
