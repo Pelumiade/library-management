@@ -43,7 +43,7 @@ def test_update_book(db_session):
     
     assert updated_book.title == "Updated Title"
     assert updated_book.author == "Updated Author"
-    assert updated_book.isbn == "UPDATE123"  # Unchanged field
+    assert updated_book.isbn == "UPDATE123"  
 
 
 def test_handle_book_borrowed(db_session):
@@ -77,10 +77,9 @@ def test_handle_book_borrowed(db_session):
     )
     db_session.add(lending)
     
-    # Manually update book availability (this is what your app does)
+    # Manually update book availability 
     test_book.is_available = False
     db_session.commit()
     
-    # Now verify
     db_session.refresh(test_book)
     assert test_book.is_available is False

@@ -1,11 +1,10 @@
-# First, set environment variables
 import os
 import sys
 
 # Test database URL for frontend API
 TEST_DATABASE_URL = "sqlite:///./test.db"
 
-# Set environment variables immediately before any imports
+# Environment variables
 os.environ["POSTGRES_SERVER"] = "localhost"
 os.environ["POSTGRES_USER"] = "test_user"
 os.environ["POSTGRES_PASSWORD"] = "test_password"
@@ -18,12 +17,11 @@ os.environ["RABBITMQ_USER"] = "guest"
 os.environ["RABBITMQ_PASSWORD"] = "guest"
 os.environ["PROJECT_NAME"] = "Library Management - FRONTEND API Test"
 
-# Add the frontend_api directory to Python path
+# Frontend_api directory to Python path
 frontend_api_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if frontend_api_path not in sys.path:
     sys.path.insert(0, frontend_api_path)
 
-# Now import the rest of the modules
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -37,6 +35,8 @@ with mock.patch('app.consumer.start_consumer'):
     from app.models import Base
     from app.dependencies import get_db
 
+    
+
 @pytest.fixture(scope="session")
 def engine():
     # Create a test database engine
@@ -44,6 +44,7 @@ def engine():
     Base.metadata.create_all(bind=engine)
     yield engine
     Base.metadata.drop_all(bind=engine)
+
 
 @pytest.fixture(scope="function")
 def db_session(engine):

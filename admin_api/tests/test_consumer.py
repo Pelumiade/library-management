@@ -31,7 +31,6 @@ def test_handle_user_created(db_session):
 
 
 def test_handle_book_returned(db_session):
-    # Create actual test data instead of mocks
     
     # Create book, user, and lending
     test_book = Book(
