@@ -1,20 +1,25 @@
 import json
-import pika
 import logging
 import threading
 import time
+from typing import Dict, Any
+
+import pika
 from sqlalchemy.orm import Session
-from typing import Dict, Any, Callable
+from sqlalchemy import select
 
 from .dependencies import SessionLocal
 from .config import settings
 from .schemas import BookCreate
 from .crud import books
-from .models import Lending 
+from .models import Lending, Book
 
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 def get_connection():
@@ -31,19 +36,23 @@ def get_connection():
     )
     return pika.BlockingConnection(parameters)
 
-# Define event handlers
+# Define event handlers using SQLAlchemy 2.0 query methods
 def handle_book_created(data: Dict[str, Any], db: Session):
     """Handle book_created events from admin service"""
     logger.info(f"Processing book_created event: {data}")
     
     # Check if book already exists in frontend database
     if data.get('isbn'):
-        existing_book = books.book.get_by_isbn(db, isbn=data['isbn'])
+        # Use select statement instead of query
+        stmt = select(Book).where(Book.isbn == data['isbn'])
+        existing_book = db.execute(stmt).scalar_one_or_none()
+        
         if existing_book:
             logger.info(f"Book with ISBN {data['isbn']} already exists, updating")
             # Update existing book
             for key, value in data.items():
-                setattr(existing_book, key, value)
+                if hasattr(existing_book, key):
+                    setattr(existing_book, key, value)
             db.add(existing_book)
             db.commit()
             db.refresh(existing_book)
@@ -70,14 +79,16 @@ def handle_book_updated(data: Dict[str, Any], db: Session):
     if not book_id:
         logger.error("Book ID missing in update event")
         return
-        
-    existing_book = books.book.get(db, id=book_id)
-    if not existing_book:
-        logger.warning(f"Book with ID {book_id} not found for update, checking by ISBN")
-        # Try to find by ISBN as fallback
-        if data.get('isbn'):
-            existing_book = books.book.get_by_isbn(db, isbn=data['isbn'])
-            
+    
+    # Use select statement for querying
+    stmt = select(Book).where(Book.id == book_id)
+    existing_book = db.execute(stmt).scalar_one_or_none()
+    
+    if not existing_book and data.get('isbn'):
+        # Fallback to finding by ISBN
+        stmt = select(Book).where(Book.isbn == data['isbn'])
+        existing_book = db.execute(stmt).scalar_one_or_none()
+    
     if existing_book:
         # Update the book
         for key, value in data.items():
@@ -93,14 +104,16 @@ def handle_book_borrowed(data: Dict[str, Any], db: Session):
     """Handle book_borrowed events from frontend service"""
     logger.info(f"Processing book_borrowed event: {data}")
     
-    # First check if this lending record already exists
+    # Use select statement to check existing lending
     lending_id = data.get('id')
     if lending_id:
-        existing_lending = db.query(Lending).filter(Lending.id == lending_id).first()
+        stmt = select(Lending).where(Lending.id == lending_id)
+        existing_lending = db.execute(stmt).scalar_one_or_none()
+        
         if existing_lending:
             # Update existing record
             for key, value in data.items():
-                if hasattr(existing_lending, key):  # Only set attributes that exist in the model
+                if hasattr(existing_lending, key):
                     setattr(existing_lending, key, value)
             db.add(existing_lending)
             db.commit()
@@ -126,8 +139,10 @@ def handle_book_returned(data: Dict[str, Any], db: Session):
         logger.error("Book ID missing in book_returned event")
         return
     
-    # Find the book in frontend database
-    book = books.book.get(db, id=book_id)
+    # Use select statement to find the book
+    stmt = select(Book).where(Book.id == book_id)
+    book = db.execute(stmt).scalar_one_or_none()
+    
     if book:
         # Update book availability
         book.is_available = True
@@ -146,8 +161,11 @@ def handle_book_deleted(data: Dict[str, Any], db: Session):
     if not book_id:
         logger.error("Book ID missing in delete event")
         return
-        
-    existing_book = books.book.get(db, id=book_id)
+    
+    # Use select statement to find the book
+    stmt = select(Book).where(Book.id == book_id)
+    existing_book = db.execute(stmt).scalar_one_or_none()
+    
     if existing_book:
         db.delete(existing_book)
         db.commit()
@@ -244,4 +262,6 @@ def start_consumer():
     consumer_thread.start()
     logger.info("Consumer thread started")
 
-start_consumer()
+# Only start the consumer if this script is run directly
+if __name__ == "__main__":
+    start_consumer()

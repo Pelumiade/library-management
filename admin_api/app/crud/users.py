@@ -1,5 +1,6 @@
 from typing import List, Optional, Dict, Any, Union
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from .base import CRUDBase
 from .. import models, schemas
@@ -11,18 +12,22 @@ class CRUDUser(CRUDBase[models.User, schemas.UserCreate, schemas.UserCreate]):
     """
     def get(self, db: Session, id: int) -> Optional[models.User]:  
         """
-        Get a user by ID.
+        Get a user by ID using select statement.
         """
-        return db.query(models.User).filter(models.User.id == id).first()
+        statement = select(models.User).where(models.User.id == id)
+        return db.execute(statement).scalar_one_or_none()
     
     def get_by_email(self, db: Session, *, email: str) -> Optional[models.User]:
         """
-        Get a user by email.
+        Get a user by email using select statement.
         """
-        return db.query(models.User).filter(models.User.email == email).first()
-    
+        statement = select(models.User).where(models.User.email == email)
+        return db.execute(statement).scalar_one_or_none()
     
     def create(self, db: Session, *, obj_in: Union[schemas.UserCreate, Dict[str, Any]]) -> models.User:
+        """
+        Create a new user from either a dictionary or UserCreate schema.
+        """
         if isinstance(obj_in, dict):
             # Convert dictionary to User model
             db_obj = models.User(
@@ -48,15 +53,15 @@ class CRUDUser(CRUDBase[models.User, schemas.UserCreate, schemas.UserCreate]):
         self, db: Session, *, skip: int = 0, limit: int = 100
     ) -> List[models.User]:
         """
-        Get all active users.
+        Get all active users using select statement.
         """
-        return (
-            db.query(models.User)
-            .filter(models.User.is_active == True)
+        statement = (
+            select(models.User)
+            .where(models.User.is_active == True)
             .offset(skip)
             .limit(limit)
-            .all()
         )
+        return list(db.execute(statement).scalars().all())
 
 
 user = CRUDUser(models.User)

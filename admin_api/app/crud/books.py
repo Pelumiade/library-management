@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import select, func, distinct
 
 from .base import CRUDBase
 from .. import models, schemas
@@ -13,66 +13,66 @@ class CRUDBook(CRUDBase[models.Book, schemas.BookCreate, schemas.BookCreate]):
     
     def get_by_isbn(self, db: Session, *, isbn: str) -> Optional[models.Book]:
         """
-        Get a book by ISBN.
+        Get a book by ISBN using select statement.
         """
-        return db.query(models.Book).filter(models.Book.isbn == isbn).first()
+        statement = select(models.Book).where(models.Book.isbn == isbn)
+        return db.execute(statement).scalar_one_or_none()
     
     def get_by_category(
         self, db: Session, *, category: str, skip: int = 0, limit: int = 100
     ) -> List[models.Book]:
         """
-        Get books by category.
+        Get books by category using select statement.
         """
-        return (
-            db.query(models.Book)
-            .filter(models.Book.category == category)
+        statement = (
+            select(models.Book)
+            .where(models.Book.category == category)
             .offset(skip)
             .limit(limit)
-            .all()
         )
+        return list(db.execute(statement).scalars().all())
     
     def get_by_publisher(
         self, db: Session, *, publisher: str, skip: int = 0, limit: int = 100
     ) -> List[models.Book]:
         """
-        Get books by publisher.
+        Get books by publisher using select statement.
         """
-        return (
-            db.query(models.Book)
-            .filter(models.Book.publisher == publisher)
+        statement = (
+            select(models.Book)
+            .where(models.Book.publisher == publisher)
             .offset(skip)
             .limit(limit)
-            .all()
         )
+        return list(db.execute(statement).scalars().all())
     
     def get_available_books(
         self, db: Session, *, skip: int = 0, limit: int = 100
     ) -> List[models.Book]:
         """
-        Get all available books.
+        Get all available books using select statement.
         """
-        return (
-            db.query(models.Book)
-            .filter(models.Book.is_available == True)
+        statement = (
+            select(models.Book)
+            .where(models.Book.is_available == True)
             .offset(skip)
             .limit(limit)
-            .all()
         )
-    
+        return list(db.execute(statement).scalars().all())
 
     def get_unavailable_books(
         self, db: Session, *, skip: int = 0, limit: int = 100
     ) -> List[models.Book]:
         """
-        Get all unavailable books.
+        Get all unavailable books using select statement.
         """
-        return (
-            db.query(models.Book)
-            .filter(models.Book.is_available == False)
+        statement = (
+            select(models.Book)
+            .where(models.Book.is_available == False)
             .offset(skip)
             .limit(limit)
-            .all()
         )
+        return list(db.execute(statement).scalars().all())
     
     def create(self, db: Session, *, obj_in: schemas.BookCreate) -> models.Book:
         """
@@ -95,15 +95,17 @@ class CRUDBook(CRUDBase[models.Book, schemas.BookCreate, schemas.BookCreate]):
     
     def get_categories(self, db: Session) -> List[str]:
         """
-        Get a list of all unique categories.
+        Get a list of all unique categories using select statement.
         """
-        return [r[0] for r in db.query(models.Book.category).distinct().all()]
+        statement = select(distinct(models.Book.category))
+        return list(db.execute(statement).scalars().all())
     
     def get_publishers(self, db: Session) -> List[str]:
         """
-        Get a list of all unique publishers.
+        Get a list of all unique publishers using select statement.
         """
-        return [r[0] for r in db.query(models.Book.publisher).distinct().all()]
+        statement = select(distinct(models.Book.publisher))
+        return list(db.execute(statement).scalars().all())
 
 
 book = CRUDBook(models.Book)

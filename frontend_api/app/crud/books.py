@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 from typing import List, Optional, Dict, Any
 
-from sqlalchemy import and_
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from ..models import Lending, Book, User
@@ -11,10 +11,18 @@ from ..schemas import BookCreate, BookUpdate
 # Book operations
 class BookCRUD:
     def get(self, db: Session, id: int) -> Optional[Book]:
-        return db.query(Book).filter(Book.id == id).first()
+        """
+        Get a book by its ID using select statement.
+        """
+        statement = select(Book).where(Book.id == id)
+        return db.execute(statement).scalar_one_or_none()
 
     def get_by_isbn(self, db: Session, isbn: str) -> Optional[Book]:
-        return db.query(Book).filter(Book.isbn == isbn).first()
+        """
+        Get a book by ISBN using select statement.
+        """
+        statement = select(Book).where(Book.isbn == isbn)
+        return db.execute(statement).scalar_one_or_none()
 
     def get_all(
         self, 
@@ -24,16 +32,28 @@ class BookCRUD:
         publisher: Optional[str] = None,
         category: Optional[str] = None
     ) -> List[Book]:
-        query = db.query(Book).filter(Book.is_available == True)
+        """
+        Get all available books with optional filtering.
+        """
+        # Start with base query for available books
+        statement = select(Book).where(Book.is_available == True)
         
+        # Add optional filters
         if publisher:
-            query = query.filter(Book.publisher == publisher)
+            statement = statement.where(Book.publisher == publisher)
         if category:
-            query = query.filter(Book.category == category)
+            statement = statement.where(Book.category == category)
         
-        return query.offset(skip).limit(limit).all()
+        # Add pagination
+        statement = statement.offset(skip).limit(limit)
+        
+        # Execute and return results
+        return list(db.execute(statement).scalars().all())
 
     def create(self, db: Session, *, obj_in: BookCreate) -> Book:
+        """
+        Create a new book.
+        """
         db_obj = Book(
             title=obj_in.title,
             author=obj_in.author,
@@ -50,7 +70,11 @@ class BookCRUD:
         return db_obj
 
     def update(self, db: Session, *, db_obj: Book, obj_in: BookUpdate) -> Book:
-        update_data = obj_in.dict(exclude_unset=True)
+        """
+        Update an existing book.
+        """
+        # Use model_dump for Pydantic V2 compatibility
+        update_data = obj_in.model_dump(exclude_unset=True)
         for field in update_data:
             setattr(db_obj, field, update_data[field])
         db.add(db_obj)
@@ -59,9 +83,16 @@ class BookCRUD:
         return db_obj
 
     def remove(self, db: Session, *, id: int) -> Book:
-        obj = db.query(Book).get(id)
+        """
+        Remove a book by its ID.
+        """
+        # Use db.get() instead of query().get()
+        obj = db.get(Book, id)
+        if obj is None:
+            raise ValueError(f"Book with id {id} not found")
         db.delete(obj)
         db.commit()
         return obj
+
 
 book = BookCRUD()

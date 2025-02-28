@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Any
 from datetime import date, datetime, timedelta
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, select
 
 from .base import CRUDBase
 from .. import models, schemas
@@ -14,12 +14,14 @@ class CRUDLending(CRUDBase[models.Lending, schemas.LendingCreate, schemas.Lendin
     
     def create_lending(
         self, db: Session, *, user_id: int, book_id: int, duration_days: int
-    ) -> models.Lending:
+    ) -> Optional[models.Lending]:
         """
         Create a new lending record.
         """
         # Check if book is available
-        book = db.query(models.Book).filter(models.Book.id == book_id).first()
+        book_statement = select(models.Book).where(models.Book.id == book_id)
+        book = db.execute(book_statement).scalar_one_or_none()
+        
         if not book or not book.is_available:
             return None
         
@@ -45,37 +47,38 @@ class CRUDLending(CRUDBase[models.Lending, schemas.LendingCreate, schemas.Lendin
     
     def get_active_lendings(
         self, db: Session, *, skip: int = 0, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    ) -> List[models.Lending]:
         """
         Get all active lendings with user and book information.
         """
-        results = (
-            db.query(models.Lending)
-            .options(joinedload(models.Lending.user), joinedload(models.Lending.book))
-            .filter(models.Lending.return_date == None)
+        statement = (
+            select(models.Lending)
+            .options(
+                joinedload(models.Lending.user), 
+                joinedload(models.Lending.book)
+            )
+            .where(models.Lending.return_date == None)
             .offset(skip)
             .limit(limit)
-            .all()
         )
         
-        return results
+        return list(db.execute(statement).scalars().all())
     
     def get_user_lendings(
         self, db: Session, *, user_id: int, skip: int = 0, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    ) -> List[models.Lending]:
         """
         Get all books borrowed by a user.
         """
-        results = (
-            db.query(models.Lending)
+        statement = (
+            select(models.Lending)
             .options(joinedload(models.Lending.book))
-            .filter(models.Lending.user_id == user_id)
+            .where(models.Lending.user_id == user_id)
             .offset(skip)
             .limit(limit)
-            .all()
         )
         
-        return results
+        return list(db.execute(statement).scalars().all())
     
     def get_user_active_lendings(
         self, db: Session, *, user_id: int
@@ -83,38 +86,41 @@ class CRUDLending(CRUDBase[models.Lending, schemas.LendingCreate, schemas.Lendin
         """
         Get all active lendings for a user.
         """
-        return (
-            db.query(models.Lending)
-            .filter(
+        statement = (
+            select(models.Lending)
+            .where(
                 models.Lending.user_id == user_id,
                 models.Lending.return_date == None
             )
-            .all()
         )
+        
+        return list(db.execute(statement).scalars().all())
+    
     def get_active_lending_by_book(self, db: Session, book_id: int) -> Optional[models.Lending]:
         """
         Get active lending record for a specific book.
         """
-        return db.query(models.Lending).filter(
+        statement = select(models.Lending).where(
             models.Lending.book_id == book_id,
             models.Lending.return_date == None
-        ).first()
+        )
+        
+        return db.execute(statement).scalar_one_or_none()
         
     def get_unavailable_books(self, db: Session) -> List[Dict[str, Any]]:
         """
         Get all unavailable books with their due dates.
         """
-        results = []
-        
-        # Get all unreturned lendings
-        lendings = (
-            db.query(models.Lending)
+        statement = (
+            select(models.Lending)
             .options(joinedload(models.Lending.book))
-            .filter(models.Lending.return_date == None)
-            .all()
+            .where(models.Lending.return_date == None)
         )
         
+        lendings = list(db.execute(statement).scalars().all())
+        
         # Format results
+        results = []
         for lending in lendings:
             book_with_due_date = {
                 **lending.book.__dict__,
@@ -132,15 +138,20 @@ class CRUDLending(CRUDBase[models.Lending, schemas.LendingCreate, schemas.Lendin
         """
         Mark a lending as returned.
         """
-        lending = db.query(models.Lending).filter(models.Lending.id == lending_id).first()
+        # Find the lending record
+        lending_statement = select(models.Lending).where(models.Lending.id == lending_id)
+        lending = db.execute(lending_statement).scalar_one_or_none()
+        
         if not lending:
             return None
         
         # Update lending record
         lending.return_date = date.today()
         
-        # Update book availability
-        book = db.query(models.Book).filter(models.Book.id == lending.book_id).first()
+        # Find and update book availability
+        book_statement = select(models.Book).where(models.Book.id == lending.book_id)
+        book = db.execute(book_statement).scalar_one_or_none()
+        
         if book:
             book.is_available = True
             db.add(book)
@@ -151,23 +162,25 @@ class CRUDLending(CRUDBase[models.Lending, schemas.LendingCreate, schemas.Lendin
         
         return lending
     
-    def get_overdue_lendings(self, db: Session) -> List[Dict[str, Any]]:
+    def get_overdue_lendings(self, db: Session) -> List[models.Lending]:
         """
         Get all overdue lendings.
         """
         today = date.today()
         
-        results = (
-            db.query(models.Lending)
-            .options(joinedload(models.Lending.user), joinedload(models.Lending.book))
-            .filter(
+        statement = (
+            select(models.Lending)
+            .options(
+                joinedload(models.Lending.user), 
+                joinedload(models.Lending.book)
+            )
+            .where(
                 models.Lending.due_date < today,
                 models.Lending.return_date == None
             )
-            .all()
         )
         
-        return results
+        return list(db.execute(statement).scalars().all())
 
 
 lending = CRUDLending(models.Lending)
