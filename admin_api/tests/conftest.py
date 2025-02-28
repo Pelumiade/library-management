@@ -2,29 +2,43 @@
 import sys
 import os
 import pytest
-from unittest.mock import patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from fastapi.testclient import TestClient
-from app.main import app
-from app.dependencies import get_db
-    
-# Add admin_api to path so we can import from app
+
+# Add the admin_api directory to Python path
 admin_api_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if admin_api_path not in sys.path:
     sys.path.insert(0, admin_api_path)
 
-from app.models import Base
+# Import and create the test settings
 from tests.test_settings import test_settings
+
+# Set environment variables immediately before any imports
+os.environ["POSTGRES_SERVER"] = test_settings.POSTGRES_SERVER
+os.environ["POSTGRES_USER"] = test_settings.POSTGRES_USER
+os.environ["POSTGRES_PASSWORD"] = test_settings.POSTGRES_PASSWORD
+os.environ["POSTGRES_DB"] = test_settings.POSTGRES_DB
+os.environ["POSTGRES_PORT"] = str(test_settings.POSTGRES_PORT)
+os.environ["DATABASE_URL"] = test_settings.DATABASE_URL
+os.environ["RABBITMQ_HOST"] = test_settings.RABBITMQ_HOST
+os.environ["RABBITMQ_PORT"] = str(test_settings.RABBITMQ_PORT)
+os.environ["RABBITMQ_USER"] = test_settings.RABBITMQ_USER
+os.environ["RABBITMQ_PASSWORD"] = test_settings.RABBITMQ_PASSWORD
+os.environ["PROJECT_NAME"] = test_settings.PROJECT_NAME
+
+# Now we can safely import app modules
+from app.models import Base
+
+# Mock RabbitMQ consumer to avoid connecting to actual RabbitMQ during tests
+import unittest.mock as mock
+with mock.patch('app.consumer.start_consumer'):
+    from app.main import app
+    
+from app.dependencies import get_db
+from fastapi.testclient import TestClient
 
 # Test database URL
 TEST_DATABASE_URL = "sqlite:///./test.db"
-
-# Patch settings before importing app
-@pytest.fixture(scope="session", autouse=True)
-def patch_settings():
-    with patch("app.config.settings", test_settings):
-        yield
 
 @pytest.fixture(scope="session")
 def engine():
@@ -46,9 +60,7 @@ def db_session(engine):
         db.close()
 
 @pytest.fixture(scope="module")
-def client(patch_settings, engine):
-    # Now that settings are patched, we can import the app
-    
+def client(engine):
     # Create testing DB session factory
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     

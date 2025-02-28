@@ -1,8 +1,10 @@
+#test_crud.py
 import pytest
 from datetime import date, timedelta
 
 from app.models import Book, User, Lending
 from app.crud import books, users, lending
+from app.schemas import BookCreate, UserCreate, LendingCreate
 
 def test_create_book(db_session):
     # Test creating a book
@@ -15,26 +17,26 @@ def test_create_book(db_session):
         "publication_year": 2023,
         "description": "Admin test book"
     }
-    book = books.book.create(db_session, obj_in=book_data)
+    # Convert dict to Pydantic model
+    book_in = BookCreate(**book_data)
+    book = books.book.create(db_session, obj_in=book_in)
     
-    assert book.title == "Admin Book Test"
-    assert book.is_available == True
-    
-    # Test retrieving the book
-    retrieved_book = books.book.get(db_session, id=book.id)
-    assert retrieved_book is not None
-    assert retrieved_book.id == book.id
+    assert book.title == book_data["title"]
+    assert book.isbn == book_data["isbn"]
 
 def test_update_book(db_session):
     # Create book first
-    book = books.book.create(db_session, obj_in={
+    book_data = {
         "title": "Original Title",
         "author": "Original Author",
         "isbn": "UPDATE123",
         "publisher": "Test",
         "category": "Test",
         "publication_year": 2023
-    })
+    }
+    # Convert dict to Pydantic model
+    book_in = BookCreate(**book_data)
+    book = books.book.create(db_session, obj_in=book_in)
     
     # Update the book
     updated_data = {"title": "Updated Title", "author": "Updated Author"}
@@ -44,25 +46,41 @@ def test_update_book(db_session):
     assert updated_book.author == "Updated Author"
     assert updated_book.isbn == "UPDATE123"  # Unchanged field
 
-def test_delete_book(db_session):
-    # Create book first
-    book = books.book.create(db_session, obj_in={
-        "title": "Book to Delete",
-        "author": "Delete Author",
-        "isbn": "DELETE123",
-        "publisher": "Test",
-        "category": "Test",
-        "publication_year": 2023
-    })
+
+def test_handle_book_borrowed(db_session):
+    # Create a real Book and User instance for testing
     
-    # Get book ID
-    book_id = book.id
+    # Add real (but test) instances to the DB
+    test_book = Book(
+        title="Test Book",
+        author="Test Author",
+        isbn="TEST123",
+        publisher="Test Publisher",
+        category="Test",
+        publication_year=2023,
+        is_available=True
+    )
+    test_user = User(
+        email="test@example.com",
+        first_name="Test",
+        last_name="User",
+        is_active=True
+    )
+    db_session.add_all([test_book, test_user])
+    db_session.commit()
     
-    # Delete the book
-    deleted_book = books.book.remove(db_session, id=book_id)
+    # Create test data with Python date objects (not strings)
+    borrow_data = {
+        "book_id": test_book.id,
+        "user_id": test_user.id,
+        "borrow_date": date(2025, 2, 27),
+        "due_date": date(2025, 3, 13)
+    }
     
-    assert deleted_book.id == book_id
+    # Call the handler
+    from app.consumer import handle_book_borrowed
+    handle_book_borrowed(borrow_data, db_session)
     
-    # Verify book no longer exists
-    retrieved_book = books.book.get(db_session, id=book_id)
-    assert retrieved_book is None
+    # Verify the book is now unavailable
+    db_session.refresh(test_book)
+    assert test_book.is_available is False

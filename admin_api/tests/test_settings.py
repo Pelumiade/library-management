@@ -1,10 +1,10 @@
+# admin_api/tests/test_settings.py
 from pydantic_settings import BaseSettings
-from pydantic import ConfigDict
 
-class TestSettings(BaseSettings):
+class TestEnvSettings(BaseSettings):
     PROJECT_NAME: str = "Library Management - ADMIN API Test"
     
-    # Database settings
+    # Database settings (using SQLite for tests)
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_USER: str = "test_user"
     POSTGRES_PASSWORD: str = "test_password"
@@ -12,18 +12,14 @@ class TestSettings(BaseSettings):
     POSTGRES_PORT: int = 5432
     DATABASE_URL: str = "sqlite:///./test.db"
     
-    # RabbitMQ settings
+    # Mock RabbitMQ settings
     RABBITMQ_HOST: str = "localhost"
     RABBITMQ_PORT: int = 5672
     RABBITMQ_USER: str = "guest"
     RABBITMQ_PASSWORD: str = "guest"
     
-    @property
-    def SQLALCHEMY_DATABASE_URI(self):
-        return self.DATABASE_URL
-    
-    model_config = ConfigDict(
-        case_sensitive=True
-    )
+    class Config:
+        env_file = None  # Don't use .env file for tests
+        case_sensitive = True
 
-test_settings = TestSettings()
+test_settings = TestEnvSettings()
