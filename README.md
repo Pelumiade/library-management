@@ -63,7 +63,7 @@ This application is deployed on an AWS EC2 instance with the following endpoints
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/library-management.git
+   git clone https://github.com/Pelumiade/library-management.git
    cd library-management
    ```
 
