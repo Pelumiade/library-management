@@ -3,14 +3,16 @@ from datetime import date
 
 from app.crud import books, users, lending
 from app.models import Book, User, Lending
+from app.schemas import UserCreate, BookCreate, LendingCreate
+
 
 def test_create_user(db_session):
-    # Test creating a user
-    user_data = {
-        "email": "test@frontend.com",
-        "first_name": "Frontend",
-        "last_name": "Test"
-    }
+    # Test creating a user using Pydantic model
+    user_data = UserCreate(
+        email="test@frontend.com",
+        first_name="Frontend",
+        last_name="Test"
+    )
     user = users.user.create(db_session, obj_in=user_data)
     
     assert user.email == "test@frontend.com"
@@ -22,29 +24,30 @@ def test_create_user(db_session):
     assert retrieved_user is not None
     assert retrieved_user.id == user.id
 
+
 def test_borrow_book(db_session):
-    # Create a user and book first
-    user = users.user.create(db_session, obj_in={
-        "email": "borrower@frontend.com", 
-        "first_name": "Borrower", 
-        "last_name": "Frontend"
-    })
+    # Create a user and book first using Pydantic models
+    user = users.user.create(db_session, obj_in=UserCreate(
+        email="borrower@frontend.com", 
+        first_name="Borrower", 
+        last_name="Frontend"
+    ))
     
-    book = books.book.create(db_session, obj_in={
-        "title": "Frontend Book",
-        "author": "Frontend Author",
-        "isbn": "FRONTEND123",
-        "publisher": "Frontend Publisher",
-        "category": "Test",
-        "publication_year": 2023
-    })
+    book = books.book.create(db_session, obj_in=BookCreate(
+        title="Frontend Book",
+        author="Frontend Author",
+        isbn="FRONTEND123",
+        publisher="Frontend Publisher",
+        category="Test",
+        publication_year=2023
+    ))
     
     # Test borrowing the book
-    lending_in = {
-        "user_id": user.id,
-        "book_id": book.id,
-        "duration_days": 14
-    }
+    lending_in = LendingCreate(
+        user_id=user.id,
+        book_id=book.id,
+        duration_days=14
+    )
     
     lending_record = lending.borrow_book(db_session, obj_in=lending_in)
     
@@ -61,23 +64,23 @@ def test_borrow_book(db_session):
 
 def test_return_book(db_session):
     # Create user, book, and lending
-    user = users.user.create(db_session, obj_in={
-        "email": "returner@frontend.com", 
-        "first_name": "Returner", 
-        "last_name": "Frontend"
-    })
+    user = users.user.create(db_session, obj_in=UserCreate(
+        email="returner@frontend.com", 
+        first_name="Returner", 
+        last_name="Frontend"
+    ))
     
-    book = books.book.create(db_session, obj_in={
-        "title": "Return Book",
-        "author": "Return Author",
-        "isbn": "RETURN123",
-        "publisher": "Frontend Publisher",
-        "category": "Test",
-        "publication_year": 2023
-    })
+    book = books.book.create(db_session, obj_in=BookCreate(
+        title="Return Book",
+        author="Return Author",
+        isbn="RETURN123",
+        publisher="Frontend Publisher",
+        category="Test",
+        publication_year=2023
+    ))
     
     # Borrow the book
-    lending_in = {"user_id": user.id, "book_id": book.id, "duration_days": 7}
+    lending_in = LendingCreate(user_id=user.id, book_id=book.id, duration_days=7)
     lending_record = lending.borrow_book(db_session, obj_in=lending_in)
     
     # Test returning the book

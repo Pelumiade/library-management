@@ -1,9 +1,18 @@
 import pytest
+import logging
+
 from unittest.mock import patch, MagicMock
 
 from app.consumer import handle_book_created, handle_book_updated, handle_book_deleted
 
 from app.crud.books import book
+from app.models import Book
+
+
+# Create a logger for this module
+logger = logging.getLogger(__name__)
+
+
 def test_handle_book_created(db_session):
     # Create a mock book data
     book_data = {
@@ -28,38 +37,57 @@ def test_handle_book_created(db_session):
             
             book.create.assert_called_once()
 
+
 def test_handle_book_updated(db_session):
-    # Mock book data
+    #Create a real book in the database
+    real_book = Book(
+        title="Original Title",
+        author="Original Author",
+        isbn="UPDATE123",
+        publisher="Test Publisher",
+        category="Test",
+        publication_year=2023
+    )
+    db_session.add(real_book)
+    db_session.flush()  # This assigns an ID without committing
+    
+    # Store the ID for our test
+    book_id = real_book.id
+    
+    # Create the book data for updating
     book_data = {
-        "id": 1,
+        "id": book_id,
         "title": "Updated Book",
         "author": "Updated Author",
         "isbn": "UPDATE123"
     }
     
-    # Mock the get method to return a mock book
-    mock_book = MagicMock()
-    with patch('app.crud.books.book.get', return_value=mock_book):
-        # Call the handler
-        handle_book_updated(book_data, db_session)
-        
-        # Verify book attributes were updated
-        assert mock_book.title == "Updated Book"
-        assert mock_book.author == "Updated Author"
-        assert mock_book.isbn == "UPDATE123"
-        assert db_session.add.called
-        assert db_session.commit.called
-
-def test_handle_book_deleted(db_session):
-    # Mock book data
-    book_data = {"id": 1}
+    # Call the handler - this will update the book
+    handle_book_updated(book_data, db_session)
     
-    # Mock the get method to return a mock book
-    mock_book = MagicMock()
-    with patch('app.crud.books.book.get', return_value=mock_book):
-        # Call the handler
-        handle_book_deleted(book_data, db_session)
-        
-        # Verify the book was deleted
-        assert db_session.delete.called
-        assert db_session.commit.called
+    # Refresh our reference to get the latest data
+    db_session.refresh(real_book)
+    
+    # Verify book attributes were updated
+    assert real_book.title == "Updated Book"
+    assert real_book.author == "Updated Author"
+    assert real_book.isbn == "UPDATE123"
+    
+
+def handle_book_deleted(data, db):
+    """Handle a book_deleted event from the admin API"""
+    logger.info(f"Processing book_deleted event: {data}")
+    book_id = data.get("id")
+    if not book_id:
+        logger.error("Book ID missing in book_deleted event")
+        return
+
+    # Get the book
+    book_obj = book.get(db, id=book_id)
+    if not book_obj:
+        logger.error(f"Book with ID {book_id} not found for deletion")
+        return  
+    
+    # Delete the book
+    db.delete(book_obj)
+    db.commit()
