@@ -14,7 +14,7 @@ ADMIN_API_DIR="admin_api"
 FRONTEND_API_DIR="frontend_api"
 
 # Ensure coverage and pytest are installed
-pip install pytest pytest-cov coverage
+pip install pytest pytest-cov coverage coverage-badge
 
 # Function to run tests and generate coverage for a project
 run_project_coverage() {
@@ -48,6 +48,9 @@ coverage combine \
 coverage report --skip-covered
 coverage html -d combined_coverage_html
 coverage xml -o combined_coverage.xml
+
+# Generate coverage badge
+coverage-badge -o coverage_badge.svg
 
 # Optional: Open HTML report
 if command -v xdg-open &> /dev/null; then

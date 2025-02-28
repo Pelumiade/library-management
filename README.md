@@ -1,5 +1,8 @@
 # Library Management System
 
+[![Coverage](https://raw.githubusercontent.com/Pelumiade/library-management/coverage-badge/coverage_badge.svg)]
+
+
 A modern, microservices-based application for managing library resources, built with Python, FastAPI, and RabbitMQ.
 
 ## Overview
